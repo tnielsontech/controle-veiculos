@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Controle de Veículos</title>
+</head>
+<body>
+  <h1>Controle de Veículos</h1>
+  <p>Funcionando... 🎉</p>
+  <script>
+    const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
+
+    fetch(WEBAPP_URL + "?getDados=1")
+      .then(r => r.json())
+      .then(d => {
+        console.log("Servidores:", d.servidores);
+        console.log("Veículos:", d.veiculos);
+        console.log("Registros:", d.registros);
+      })
+      .catch(e => console.error("Erro:", e));
+  </script>
+</body>
+</html>
