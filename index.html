@@ -49,37 +49,28 @@
       box-sizing: border-box;
     }
     button {
-      padding: 8px 16px;
-      margin: 3px;
+      padding: 10px 15px;
+      font-size: 16px;
       background-color: #043C64;
       color: white;
       border: none;
       border-radius: 9px;
       cursor: pointer;
-      font-size: 18px;
     }
     button:hover {
       background-color: #065a95;
     }
-    .filtro-btn {
-      padding: 8px 16px;
-      margin: 3px;
-      background-color: #043C64;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: normal;
+    .filter-buttons {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .filter-buttons button {
+      margin: 0 5px;
       border: 2px solid transparent;
     }
-    .filtro-btn:hover {
+    .filter-buttons button.active {
       background-color: #065a95;
-    }
-    .filtro-ativo {
-      background-color: #065a95;
-      border: 2px solid #043C64;
-      font-weight: bold;
+      border-color: #043C64;
     }
     #feedback {
       text-align: center;
@@ -93,6 +84,30 @@
       color: #999;
       padding: 10px;
     }
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background: white;
+      margin: 15% auto;
+      padding: 20px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+    }
+    .modal-content p {
+      margin-bottom: 20px;
+    }
+    .modal-content button {
+      margin: 0 10px;
+    }
   </style>
 </head>
 <body>
@@ -103,12 +118,11 @@
   <main>
     <h2>Formulário de Registro</h2>
 
-    <!-- BOTÕES DE FILTRO DOS SERVIDORES -->
-    <div style="text-align:center; margin-bottom:10px;">
-      <button id="btnAF" class="filtro-btn" onclick="filtrarServidores('AF')">A - F</button>
-      <button id="btnGM" class="filtro-btn" onclick="filtrarServidores('GM')">G - M</button>
-      <button id="btnNZ" class="filtro-btn" onclick="filtrarServidores('NZ')">N - Z</button>
-      <button id="btnALL" class="filtro-btn filtro-ativo" onclick="filtrarServidores('ALL')">Todos</button>
+    <div class="filter-buttons">
+      <button onclick="filtrarPorLetra('AF')" id="btnAF">A-F</button>
+      <button onclick="filtrarPorLetra('GM')" id="btnGM">G-M</button>
+      <button onclick="filtrarPorLetra('NZ')" id="btnNZ">N-Z</button>
+      <button onclick="filtrarPorLetra('Todos')" id="btnTodos" class="active">Todos</button>
     </div>
 
     <label for="servidor">Servidor</label>
@@ -144,7 +158,16 @@
     <button onclick="enviar()">Confirmar</button>
     <div id="feedback"></div>
   </main>
-  <footer>Desenvolvido por Tiago Nielson - v.4.3</footer>
+
+  <div class="modal" id="confirmModal">
+    <div class="modal-content">
+      <p id="confirmMessage"></p>
+      <button onclick="confirmarEnvio()">Confirmar</button>
+      <button onclick="fecharModal()">Cancelar</button>
+    </div>
+  </div>
+
+  <footer>Desenvolvido por Tiago Nielson - v.3.1</footer>
 
   <script>
     const servidorSelect = document.getElementById("servidor");
@@ -154,57 +177,47 @@
     const obsDiv = document.getElementById("campoObservacao");
     const kmDiv = document.getElementById("campoKM");
     const feedbackDiv = document.getElementById("feedback");
-
-    const btnAF = document.getElementById("btnAF");
-    const btnGM = document.getElementById("btnGM");
-    const btnNZ = document.getElementById("btnNZ");
-    const btnALL = document.getElementById("btnALL");
+    const confirmModal = document.getElementById("confirmModal");
+    const confirmMessage = document.getElementById("confirmMessage");
 
     const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
 
     let servidores = [];
-    let servidoresFiltrados = [];
     let veiculos = [];
     let registros = [];
     let servidorComCarro = {};
+    let dadosPendentes = null;
 
     fetch(WEBAPP_URL + "?getDados=1")
       .then(r => r.json())
       .then(d => {
         servidores = d.servidores;
-        servidoresFiltrados = [...servidores];
         veiculos = d.veiculos;
         registros = d.registros || [];
         servidorComCarro = d.servidorComCarro || {};
-        preencherServidoresFiltrados();
+        preencherServidores();
       });
 
-    function filtrarServidores(grupo) {
-      [btnAF, btnGM, btnNZ, btnALL].forEach(btn => btn.classList.remove("filtro-ativo"));
-      if (grupo === 'AF') {
-        servidoresFiltrados = servidores.filter(nome => /^[A-Fa-f]/.test(nome));
-        btnAF.classList.add("filtro-ativo");
-      } else if (grupo === 'GM') {
-        servidoresFiltrados = servidores.filter(nome => /^[G-Mg-m]/.test(nome));
-        btnGM.classList.add("filtro-ativo");
-      } else if (grupo === 'NZ') {
-        servidoresFiltrados = servidores.filter(nome => /^[N-Zn-z]/.test(nome));
-        btnNZ.classList.add("filtro-ativo");
-      } else {
-        servidoresFiltrados = [...servidores]; // Todos
-        btnALL.classList.add("filtro-ativo");
-      }
-      preencherServidoresFiltrados();
-    }
-
-    function preencherServidoresFiltrados() {
+    function preencherServidores(filtro = "Todos") {
       servidorSelect.innerHTML = `<option value="">Selecione...</option>`;
-      servidoresFiltrados.forEach(nome => {
+      servidores.filter(nome => {
+        const primeira = nome.trim()[0].toUpperCase();
+        if (filtro === "AF") return "ABCDEF".includes(primeira);
+        if (filtro === "GM") return "GHIJKLM".includes(primeira);
+        if (filtro === "NZ") return "NOPQRSTUVWXYZ".includes(primeira);
+        return true;
+      }).forEach(nome => {
         const opt = document.createElement("option");
         opt.value = nome;
         opt.textContent = nome;
         servidorSelect.appendChild(opt);
       });
+    }
+
+    function filtrarPorLetra(grupo) {
+      document.querySelectorAll('.filter-buttons button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('btn' + grupo).classList.add('active');
+      preencherServidores(grupo);
     }
 
     servidorSelect.addEventListener("change", () => {
@@ -290,16 +303,17 @@
         }
       }
 
-      if (!confirm(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`)) {
-        return;
-      }
+      dadosPendentes = { servidor, acao, veiculo, observacao, km };
+      confirmMessage.textContent = `Confirma ${acao} do veículo ${veiculo} por ${servidor}?`;
+      confirmModal.style.display = "block";
+    }
 
+    function confirmarEnvio() {
+      confirmModal.style.display = "none";
       const data = new URLSearchParams();
-      data.append("servidor", servidor);
-      data.append("acao", acao);
-      data.append("veiculo", veiculo);
-      data.append("observacao", observacao);
-      data.append("km", km);
+      for (const key in dadosPendentes) {
+        data.append(key, dadosPendentes[key]);
+      }
 
       fetch(WEBAPP_URL, {
         method: "POST",
@@ -320,11 +334,10 @@
             .then(r => r.json())
             .then(d => {
               servidores = d.servidores;
-              servidoresFiltrados = [...servidores];
               veiculos = d.veiculos;
               registros = d.registros || [];
               servidorComCarro = d.servidorComCarro || {};
-              preencherServidoresFiltrados();
+              preencherServidores();
             });
         } else {
           feedbackDiv.textContent = "Erro ao enviar.";
@@ -334,6 +347,10 @@
         feedbackDiv.textContent = "Erro de conexão.";
         feedbackDiv.style.color = "red";
       });
+    }
+
+    function fecharModal() {
+      confirmModal.style.display = "none";
     }
   </script>
 </body>
