@@ -19,13 +19,8 @@
     }
     header img {
       max-height: 80px;
-      margin-bottom: 8px;
+      margin-bottom: 5px;
     }
-    header h1 {
-      margin: 0;
-      font-size: 26px;
-    }
-
     main {
       max-width: 700px;
       margin: 30px auto;
@@ -66,6 +61,24 @@
     button:hover {
       background-color: #065a95;
     }
+    .filtros {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    .filtros button {
+      width: auto;
+      padding: 6px 14px;
+      font-size: 18px;
+      background-color: #ccc;
+      color: black;
+    }
+    .filtros button.ativo {
+      background-color: #043C64;
+      color: white;
+    }
     #feedback {
       text-align: center;
       font-weight: bold;
@@ -78,76 +91,36 @@
       color: #999;
       padding: 10px;
     }
-    footer a {
-      color: #043C64;
+    .link-consulta {
+      position: absolute;
+      right: 20px;
+      top: 25px;
       font-size: 14px;
-      text-decoration: underline;
     }
-
-    .confirm-overlay {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-    }
-    .confirm-box {
-      background: white;
-      padding: 30px;
-      border-radius: 14px;
-      text-align: center;
-      max-width: 400px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-    }
-    .confirm-box p {
-      margin-bottom: 20px;
-      font-size: 18px;
-    }
-    .confirm-box button {
-      width: auto;
-      margin: 0 10px;
-      padding: 10px 20px;
-    }
-
-    .filtro-botoes {
-      text-align: center;
-      margin-bottom: 10px;
-    }
-    .filtro-botoes button {
-      width: auto;
-      margin: 0 5px 10px 5px;
-      padding: 6px 14px;
-      font-size: 15px;
-      background-color: #e0e0e0;
-      color: #043C64;
-      border: 1px solid #043C64;
-      border-radius: 7px;
-      cursor: pointer;
-    }
-    .filtro-botoes button.ativo {
-      background-color: #043C64;
+    .link-consulta a {
       color: white;
+      text-decoration: none;
+    }
+    .link-consulta a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
-
 <body>
   <header>
     <img src="https://raw.githubusercontent.com/seduin/controle-veiculos/main/Logotipo_Prefeitura_horizontal_negativo.png" alt="Prefeitura de Joinville">
     <h1>Controle de Veículos</h1>
+    <div class="link-consulta"><a href="consulta.html" target="_blank">Consulta de Veículos</a></div>
   </header>
 
   <main>
     <h2>Formulário de Registro</h2>
 
-    <div class="filtro-botoes">
+    <div class="filtros">
       <button onclick="filtrarServidores('AF')" id="btnAF">A-F</button>
       <button onclick="filtrarServidores('GM')" id="btnGM">G-M</button>
       <button onclick="filtrarServidores('NZ')" id="btnNZ">N-Z</button>
-      <button onclick="filtrarServidores('ALL')" id="btnALL" class="ativo">Todos</button>
+      <button onclick="filtrarServidores('Todos')" id="btnTodos" class="ativo">Todos</button>
     </div>
 
     <label for="servidor">Servidor</label>
@@ -184,232 +157,248 @@
     <div id="feedback"></div>
   </main>
 
-  <footer>
-    Desenvolvido por Tiago Nielson - v4.0
-    <br>
-    <a href="consulta.html">🔎 Acessar Consulta de Veículos</a>
-  </footer>
+  <footer>Desenvolvido por Tiago Nielson - v.4.2</footer>
 
-<script>
-  const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
+  <script>
+    const servidorSelect = document.getElementById("servidor");
+    const acaoSelect = document.getElementById("acao");
+    const veiculoSelect = document.getElementById("veiculo");
+    const saldoDiv = document.getElementById("saldo");
+    const obsDiv = document.getElementById("campoObservacao");
+    const kmDiv = document.getElementById("campoKM");
+    const feedbackDiv = document.getElementById("feedback");
 
-  const servidorSelect = document.getElementById("servidor");
-  const acaoSelect = document.getElementById("acao");
-  const veiculoSelect = document.getElementById("veiculo");
-  const saldoDiv = document.getElementById("saldo");
-  const obsDiv = document.getElementById("campoObservacao");
-  const kmDiv = document.getElementById("campoKM");
-  const feedbackDiv = document.getElementById("feedback");
+    const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
 
-  let servidores = [];
-  let servidoresFiltrados = [];
-  let veiculos = [];
-  let registros = [];
-  let servidorComCarro = {};
-  let timeoutLimpeza;
+    let servidores = [];
+    let servidoresFiltrados = [];
+    let veiculos = [];
+    let registros = [];
+    let servidorComCarro = {};
+    let inatividadeTimeout;
 
-  fetch(WEBAPP_URL + "?getDados=1")
-    .then(r => r.json())
-    .then(d => {
-      servidores = d.servidores;
-      servidoresFiltrados = servidores;
-      veiculos = d.veiculos;
-      registros = d.registros || [];
-      servidorComCarro = d.servidorComCarro || {};
-      preencherServidores();
-    });
+    atualizarDados();
 
-  function preencherServidores() {
-    servidorSelect.innerHTML = `<option value="">Selecione...</option>`;
-    servidoresFiltrados.forEach(nome => {
-      const opt = document.createElement("option");
-      opt.value = nome;
-      opt.textContent = nome;
-      servidorSelect.appendChild(opt);
-    });
-  }
-
-  function filtrarServidores(grupo) {
-    document.querySelectorAll('.filtro-botoes button').forEach(b => b.classList.remove('ativo'));
-    if (grupo === 'AF') {
-      servidoresFiltrados = servidores.filter(nome => /^[A-Fa-f]/.test(nome));
-      document.getElementById('btnAF').classList.add('ativo');
-    } else if (grupo === 'GM') {
-      servidoresFiltrados = servidores.filter(nome => /^[G-Mg-m]/.test(nome));
-      document.getElementById('btnGM').classList.add('ativo');
-    } else if (grupo === 'NZ') {
-      servidoresFiltrados = servidores.filter(nome => /^[N-Zn-z]/.test(nome));
-      document.getElementById('btnNZ').classList.add('ativo');
-    } else {
-      servidoresFiltrados = servidores;
-      document.getElementById('btnALL').classList.add('ativo');
+    function atualizarDados() {
+      fetch(WEBAPP_URL + "?getDados=1")
+        .then(r => r.json())
+        .then(d => {
+          servidores = d.servidores;
+          servidoresFiltrados = servidores;
+          veiculos = d.veiculos;
+          registros = d.registros || [];
+          servidorComCarro = d.servidorComCarro || {};
+          preencherServidores();
+        });
     }
-    preencherServidores();
-  }
 
-  servidorSelect.addEventListener("change", resetInatividade);
-  acaoSelect.addEventListener("change", resetInatividade);
-  veiculoSelect.addEventListener("change", resetInatividade);
-  document.getElementById("observacao").addEventListener("input", resetInatividade);
-  document.getElementById("km").addEventListener("input", resetInatividade);
-
-  servidorSelect.addEventListener("change", () => {
-    const servidor = servidorSelect.value;
-    const veiculoAnterior = servidorComCarro[servidor];
-    if (veiculoAnterior) {
-      acaoSelect.value = "Retorno";
-      acaoSelect.dispatchEvent(new Event("change"));
-      setTimeout(() => {
-        const opt = [...veiculoSelect.options].find(o => o.value.includes(veiculoAnterior));
-        if (opt) {
-          veiculoSelect.value = opt.value;
-          veiculoSelect.dispatchEvent(new Event("change"));
-        }
-      }, 300);
-      [...acaoSelect.options].forEach(o => {
-        if (o.value === "Saída") o.disabled = true;
+    function preencherServidores() {
+      servidorSelect.innerHTML = `<option value="">Selecione...</option>`;
+      servidoresFiltrados.forEach(nome => {
+        const opt = document.createElement("option");
+        opt.value = nome;
+        opt.textContent = nome;
+        servidorSelect.appendChild(opt);
       });
-    } else {
-      [...acaoSelect.options].forEach(o => o.disabled = false);
     }
-  });
 
-  acaoSelect.addEventListener("change", () => {
-    const tipo = acaoSelect.value;
-    veiculoSelect.innerHTML = `<option value="">Carregando...</option>`;
-    const opcoes = veiculos.filter(v =>
-      (tipo === "Saída" && v.disponivel) ||
-      (tipo === "Retorno" && !v.disponivel) ||
-      (tipo === "Lavação" && v.disponivel)
-    );
-    veiculoSelect.innerHTML = `<option value="">Selecione...</option>`;
-    opcoes.forEach(v => {
-      const opt = document.createElement("option");
-      opt.value = v.nome;
-      opt.textContent = `${v.nome} (${v.saldo})`;
-      veiculoSelect.appendChild(opt);
+    function filtrarServidores(grupo) {
+      document.querySelectorAll('.filtros button').forEach(btn => btn.classList.remove('ativo'));
+      switch (grupo) {
+        case 'AF':
+          servidoresFiltrados = servidores.filter(n => /^[A-Fa-f]/.test(n));
+          document.getElementById('btnAF').classList.add('ativo');
+          break;
+        case 'GM':
+          servidoresFiltrados = servidores.filter(n => /^[G-Mg-m]/.test(n));
+          document.getElementById('btnGM').classList.add('ativo');
+          break;
+        case 'NZ':
+          servidoresFiltrados = servidores.filter(n => /^[N-Zn-z]/.test(n));
+          document.getElementById('btnNZ').classList.add('ativo');
+          break;
+        default:
+          servidoresFiltrados = servidores;
+          document.getElementById('btnTodos').classList.add('ativo');
+      }
+      preencherServidores();
+    }
+
+    servidorSelect.addEventListener("change", () => {
+      const servidor = servidorSelect.value;
+      const veiculoAnterior = servidorComCarro[servidor];
+      if (veiculoAnterior) {
+        acaoSelect.value = "Retorno";
+        acaoSelect.dispatchEvent(new Event("change"));
+        setTimeout(() => {
+          const opt = [...veiculoSelect.options].find(o => o.value.includes(veiculoAnterior));
+          if (opt) {
+            veiculoSelect.value = opt.value;
+            veiculoSelect.dispatchEvent(new Event("change"));
+          }
+        }, 300);
+        [...acaoSelect.options].forEach(o => {
+          if (o.value === "Saída") o.disabled = true;
+        });
+      } else {
+        [...acaoSelect.options].forEach(o => o.disabled = false);
+      }
     });
-    saldoDiv.textContent = "";
-    obsDiv.style.display = (tipo === "Saída" || tipo === "Lavação") ? "block" : "none";
-    kmDiv.style.display = tipo === "Retorno" ? "block" : "none";
-  });
 
-  veiculoSelect.addEventListener("change", () => {
-    const v = veiculos.find(v => v.nome === veiculoSelect.value);
-    saldoDiv.textContent = v ? `Saldo: ${v.saldo}` : "";
-  });
+    acaoSelect.addEventListener("change", () => {
+      const tipo = acaoSelect.value;
+      veiculoSelect.innerHTML = `<option value="">Carregando...</option>`;
+      const opcoes = veiculos.filter(v =>
+        (tipo === "Saída" && v.disponivel) ||
+        (tipo === "Retorno" && !v.disponivel) ||
+        (tipo === "Lavação" && v.disponivel)
+      );
+      veiculoSelect.innerHTML = `<option value="">Selecione...</option>`;
+      opcoes.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v.nome;
+        opt.textContent = `${v.nome} (${v.saldo})`;
+        veiculoSelect.appendChild(opt);
+      });
+      saldoDiv.textContent = "";
+      obsDiv.style.display = (tipo === "Saída" || tipo === "Lavação") ? "block" : "none";
+      kmDiv.style.display = tipo === "Retorno" ? "block" : "none";
+    });
 
-  function enviar() {
-    const servidor = servidorSelect.value;
-    const acao = acaoSelect.value;
-    const veiculo = veiculoSelect.value;
-    const observacao = document.getElementById("observacao").value;
-    const km = document.getElementById("km").value;
+    veiculoSelect.addEventListener("change", () => {
+      const v = veiculos.find(v => v.nome === veiculoSelect.value);
+      saldoDiv.textContent = v ? `Saldo: ${v.saldo}` : "";
+    });
 
-    if (!servidor || !acao || !veiculo) {
-      feedbackDiv.textContent = "Preencha todos os campos obrigatórios.";
-      feedbackDiv.style.color = "red";
-      return;
-    }
+    function enviar() {
+      resetInatividade();
+      const servidor = servidorSelect.value;
+      const acao = acaoSelect.value;
+      const veiculo = veiculoSelect.value;
+      const observacao = document.getElementById("observacao").value;
+      const km = document.getElementById("km").value;
 
-    if (acao === "Retorno") {
-      if (!km) {
-        feedbackDiv.textContent = "Informe o KM na volta.";
+      if (!servidor || !acao || !veiculo) {
+        feedbackDiv.textContent = "Preencha todos os campos obrigatórios.";
         feedbackDiv.style.color = "red";
         return;
       }
-      const ultRetorno = [...registros].reverse().find(r => r[2] === veiculo && r[1] === "Retorno");
-      if (ultRetorno) {
-        const ultKM = parseFloat(ultRetorno[3].toString().replace(/\D/g, ""));
-        const kmAtual = parseFloat(km);
-        const diff = kmAtual - ultKM;
-        if (isFinite(ultKM) && isFinite(kmAtual)) {
-          if (diff < 0) {
-            alert("Você só andou de ré? A KM está abaixo da última registrada. Confira!");
-            return;
-          }
-          if (diff > 500) {
-            alert("Por toda Joinville? Mais de 500km? Confira a KM!");
-            return;
+
+      if (acao === "Retorno") {
+        if (!km) {
+          feedbackDiv.textContent = "Informe o KM na volta.";
+          feedbackDiv.style.color = "red";
+          return;
+        }
+        const ultRetorno = [...registros].reverse().find(r => r[2] === veiculo && r[1] === "Retorno");
+        if (ultRetorno) {
+          const ultKM = parseFloat(ultRetorno[3].toString().replace(/\D/g, ""));
+          const kmAtual = parseFloat(km);
+          const diff = kmAtual - ultKM;
+          if (isFinite(ultKM) && isFinite(kmAtual)) {
+            if (diff < 0) {
+              alertBox("Você só andou de ré? A KM está abaixo da última registrada.");
+              return;
+            }
+            if (diff > 500) {
+              alertBox("Por toda Joinville? Mais de 500km? Confira a KM!");
+              return;
+            }
           }
         }
       }
+
+      alertBox(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`, true, () => {
+        const data = new URLSearchParams();
+        data.append("servidor", servidor);
+        data.append("acao", acao);
+        data.append("veiculo", veiculo);
+        data.append("observacao", observacao);
+        data.append("km", km);
+
+        fetch(WEBAPP_URL, {
+          method: "POST",
+          body: data
+        })
+        .then(r => r.text())
+        .then(res => {
+          if (res.includes("OK")) {
+            feedbackDiv.textContent = "✅ Registro enviado com sucesso!";
+            feedbackDiv.style.color = "green";
+            setTimeout(() => feedbackDiv.textContent = "", 5000);
+            limparFormulario();
+            atualizarDados();
+          } else {
+            feedbackDiv.textContent = "Erro ao enviar.";
+            feedbackDiv.style.color = "red";
+          }
+        }).catch(() => {
+          feedbackDiv.textContent = "Erro de conexão.";
+          feedbackDiv.style.color = "red";
+        });
+      });
     }
 
-    exibirConfirmacao(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`, () => {
-      const data = new URLSearchParams();
-      data.append("servidor", servidor);
-      data.append("acao", acao);
-      data.append("veiculo", veiculo);
-      data.append("observacao", observacao);
-      data.append("km", km);
+    function limparFormulario() {
+      servidorSelect.value = "";
+      acaoSelect.value = "";
+      veiculoSelect.innerHTML = "";
+      document.getElementById("observacao").value = "";
+      document.getElementById("km").value = "";
+      saldoDiv.textContent = "";
+    }
 
-      fetch(WEBAPP_URL, {
-        method: "POST",
-        body: data
-      })
-      .then(r => r.text())
-      .then(res => {
-        if (res.includes("OK")) {
-          feedbackDiv.textContent = "✅ Registro enviado com sucesso!";
-          feedbackDiv.style.color = "green";
-          setTimeout(() => feedbackDiv.textContent = "", 5000);
-          limparFormulario();
-        } else {
-          feedbackDiv.textContent = "Erro ao enviar.";
-          feedbackDiv.style.color = "red";
-        }
-      }).catch(() => {
-        feedbackDiv.textContent = "Erro de conexão.";
-        feedbackDiv.style.color = "red";
-      });
+    function resetInatividade() {
+      clearTimeout(inatividadeTimeout);
+      inatividadeTimeout = setTimeout(() => {
+        limparFormulario();
+      }, 10000);
+    }
+
+    document.querySelectorAll('select, textarea, input').forEach(el => {
+      el.addEventListener('input', resetInatividade);
+      el.addEventListener('change', resetInatividade);
     });
-  }
 
-  function exibirConfirmacao(msg, callback) {
-    const overlay = document.createElement('div');
-    overlay.className = 'confirm-overlay';
+    function alertBox(msg, confirmacao = false, callback = null) {
+      const box = document.createElement('div');
+      box.style.position = 'fixed';
+      box.style.top = '0';
+      box.style.left = '0';
+      box.style.width = '100%';
+      box.style.height = '100%';
+      box.style.background = 'rgba(0,0,0,0.7)';
+      box.style.display = 'flex';
+      box.style.justifyContent = 'center';
+      box.style.alignItems = 'center';
+      box.style.zIndex = '9999';
 
-    const box = document.createElement('div');
-    box.className = 'confirm-box';
+      const conteudo = document.createElement('div');
+      conteudo.style.background = 'white';
+      conteudo.style.padding = '20px';
+      conteudo.style.borderRadius = '10px';
+      conteudo.style.textAlign = 'center';
+      conteudo.innerHTML = `<p>${msg}</p>`;
 
-    box.innerHTML = `
-      <p>${msg}</p>
-      <button id="confirmSim">Confirmar</button>
-      <button id="confirmNao">Cancelar</button>
-    `;
+      const btnOk = document.createElement('button');
+      btnOk.textContent = confirmacao ? 'Confirmar' : 'OK';
+      btnOk.onclick = () => {
+        document.body.removeChild(box);
+        if (confirmacao && callback) callback();
+      };
+      conteudo.appendChild(btnOk);
 
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
+      if (confirmacao) {
+        const btnCancel = document.createElement('button');
+        btnCancel.textContent = 'Cancelar';
+        btnCancel.style.marginLeft = '10px';
+        btnCancel.onclick = () => document.body.removeChild(box);
+        conteudo.appendChild(btnCancel);
+      }
 
-    document.getElementById('confirmSim').onclick = () => {
-      document.body.removeChild(overlay);
-      callback();
-    };
-    document.getElementById('confirmNao').onclick = () => {
-      document.body.removeChild(overlay);
-    };
-  }
-
-  function limparFormulario() {
-    servidorSelect.value = "";
-    acaoSelect.value = "";
-    veiculoSelect.innerHTML = "";
-    document.getElementById("observacao").value = "";
-    document.getElementById("km").value = "";
-    saldoDiv.textContent = "";
-    clearTimeout(timeoutLimpeza);
-    filtrarServidores('ALL');
-  }
-
-  function resetInatividade() {
-    clearTimeout(timeoutLimpeza);
-    timeoutLimpeza = setTimeout(() => {
-      limparFormulario();
-      feedbackDiv.textContent = "";
-    }, 10000);
-  }
-</script>
-
+      box.appendChild(conteudo);
+      document.body.appendChild(box);
+    }
+  </script>
 </body>
 </html>
