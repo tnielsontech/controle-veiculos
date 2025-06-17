@@ -20,9 +20,9 @@
       max-height: 80px;
       margin-bottom: 10px;
     }
-    header h1 {
-      margin: 5px;
-      font-size: 26px;
+    h1 {
+      margin: 0;
+      font-size: 28px;
     }
     main {
       max-width: 900px;
@@ -32,11 +32,6 @@
       border-radius: 14px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    h2 {
-      text-align: center;
-      color: #043C64;
-      font-size: 24px;
-    }
     .cards {
       display: flex;
       flex-wrap: wrap;
@@ -44,29 +39,33 @@
       justify-content: center;
     }
     .card {
-      background: white;
+      flex: 1 1 calc(50% - 20px);
+      background-color: #e0f7e9; /* Verde claro padrão */
       border-radius: 10px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
       padding: 20px;
-      width: 220px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
       text-align: center;
-      transition: 0.3s;
+      transition: transform 0.2s;
     }
-    .card.ocupado {
-      opacity: 0.5;
+    .card:hover {
+      transform: scale(1.02);
+    }
+    .ocupado {
+      background-color: #fceaea;
+      opacity: 0.6;
     }
     .card h3 {
       margin-top: 0;
-      font-size: 20px;
       color: #043C64;
+      font-size: 22px;
     }
     .card p {
-      margin: 5px 0;
-      font-size: 16px;
+      margin: 8px 0;
+      font-size: 18px;
     }
     footer {
       text-align: center;
-      font-size: 14px;
+      font-size: 15px;
       color: #999;
       padding: 10px;
     }
@@ -77,41 +76,59 @@
     <img src="https://raw.githubusercontent.com/seduin/controle-veiculos/main/Logotipo_Prefeitura_horizontal_negativo.png" alt="Prefeitura de Joinville">
     <h1>Consulta de Veículos</h1>
   </header>
-
   <main>
-    <h2>Status Atual dos Veículos</h2>
     <div class="cards" id="cards"></div>
   </main>
-
-  <footer>Desenvolvido por Tiago Nielson - v1.0</footer>
+  <footer>Desenvolvido por Tiago Nielson - v.4.0</footer>
 
   <script>
     const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
 
+    let registros = [];
+
     fetch(WEBAPP_URL + "?getDados=1")
       .then(r => r.json())
-      .then(d => {
-        const cardsDiv = document.getElementById('cards');
-        const veiculos = d.veiculos;
-
-        // Ordenar: Disponíveis primeiro
-        veiculos.sort((a, b) => {
-          if (a.disponivel === b.disponivel) return 0;
-          return a.disponivel ? -1 : 1;
-        });
-
-        veiculos.forEach(v => {
-          const card = document.createElement('div');
-          card.className = 'card' + (v.disponivel ? '' : ' ocupado');
-          card.innerHTML = `
-            <h3>${v.nome}</h3>
-            <p><strong>Placa:</strong> ${v.placa}</p>
-            <p><strong>Saldo:</strong> ${v.saldo}</p>
-            <p><strong>Status:</strong> ${v.disponivel ? '✅ Disponível' : '🚗 Ocupado'}</p>
-          `;
-          cardsDiv.appendChild(card);
-        });
+      .then(dados => {
+        registros = dados.registros || [];
+        montarCards(dados.veiculos, dados.servidorComCarro);
+      })
+      .catch(() => {
+        document.getElementById('cards').innerHTML = '<p>Erro ao carregar os dados.</p>';
       });
+
+    function montarCards(veiculos, servidorComCarro) {
+      const container = document.getElementById('cards');
+      container.innerHTML = "";
+
+      veiculos.sort((a, b) => {
+        return (a.disponivel === b.disponivel) ? 0 : a.disponivel ? -1 : 1;
+      });
+
+      veiculos.forEach(veiculo => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        if (!veiculo.disponivel) card.classList.add('ocupado');
+
+        const ultimoMotorista = buscarUltimoMotorista(veiculo.nome);
+
+        card.innerHTML = `
+          <h3>${veiculo.nome}</h3>
+          <p><strong>Saldo:</strong> ${veiculo.saldo}</p>
+          <p><strong>Status:</strong> ${veiculo.disponivel ? '✅ Disponível' : '🚗 Ocupado'}</p>
+          <p><strong>${veiculo.disponivel ? 'Último Motorista' : 'Em posse de'}:</strong><br> ${ultimoMotorista}</p>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function buscarUltimoMotorista(veiculo) {
+      const registrosVeiculo = registros.filter(r => r[2] === veiculo);
+      if (registrosVeiculo.length === 0) return "Sem registros";
+
+      const ultimo = registrosVeiculo[registrosVeiculo.length - 1];
+      return ultimo[0]; // Nome do servidor
+    }
   </script>
 </body>
 </html>
