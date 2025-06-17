@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Painel de Consulta de Veículos</title>
+  <title>Consulta de Veículos</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -14,70 +14,54 @@
       background-color: #043C64;
       color: white;
       text-align: center;
-      padding: 20px;
+      padding: 25px 10px;
+    }
+    header img {
+      max-height: 80px;
+      margin-bottom: 10px;
     }
     header h1 {
-      margin: 0;
-      font-size: 28px;
+      margin: 5px;
+      font-size: 26px;
     }
     main {
-      max-width: 1200px;
+      max-width: 900px;
       margin: 30px auto;
-      padding: 20px;
+      background: white;
+      padding: 25px;
+      border-radius: 14px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     h2 {
       text-align: center;
       color: #043C64;
-      margin-bottom: 25px;
+      font-size: 24px;
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
       gap: 20px;
+      justify-content: center;
     }
     .card {
       background: white;
-      border-radius: 14px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
       padding: 20px;
-      border-top: 6px solid #043C64;
-      transition: transform 0.2s ease;
+      width: 220px;
       text-align: center;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    .card:hover {
-      transform: translateY(-4px);
+      transition: 0.3s;
     }
     .card.ocupado {
       opacity: 0.5;
     }
     .card h3 {
-      margin: 0;
-      font-size: 22px;
+      margin-top: 0;
+      font-size: 20px;
       color: #043C64;
     }
-    .status {
-      margin: 12px 0;
-      font-weight: bold;
-      font-size: 18px;
-      padding: 6px 12px;
-      border-radius: 6px;
-      display: inline-block;
-    }
-    .disponivel {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-    .ocupadoStatus {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-    .info {
-      margin: 6px 0;
+    .card p {
+      margin: 5px 0;
       font-size: 16px;
     }
     footer {
@@ -90,63 +74,44 @@
 </head>
 <body>
   <header>
-    <h1>Painel de Consulta de Veículos</h1>
+    <img src="https://raw.githubusercontent.com/seduin/controle-veiculos/main/Logotipo_Prefeitura_horizontal_negativo.png" alt="Prefeitura de Joinville">
+    <h1>Consulta de Veículos</h1>
   </header>
+
   <main>
     <h2>Status Atual dos Veículos</h2>
-    <div class="grid" id="cardsContainer">
-      <div class="card"><p>Carregando...</p></div>
-    </div>
+    <div class="cards" id="cards"></div>
   </main>
-  <footer>Desenvolvido por Tiago Nielson - v1.3</footer>
+
+  <footer>Desenvolvido por Tiago Nielson - v1.0</footer>
 
   <script>
     const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
 
-    function carregarDados() {
-      fetch(WEBAPP_URL + "?getDados=1")
-        .then(r => r.json())
-        .then(dados => {
-          const container = document.getElementById("cardsContainer");
-          container.innerHTML = "";
+    fetch(WEBAPP_URL + "?getDados=1")
+      .then(r => r.json())
+      .then(d => {
+        const cardsDiv = document.getElementById('cards');
+        const veiculos = d.veiculos;
 
-          // Ordena: disponíveis primeiro, depois ocupados
-          const veiculosOrdenados = dados.veiculos.sort((a, b) => {
-            return (a.disponivel === b.disponivel) ? 0 : a.disponivel ? -1 : 1;
-          });
-
-          veiculosOrdenados.forEach(v => {
-            const placa = v.placa;
-            const veiculoNome = v.nome;
-            const saldo = v.saldo;
-            const statusDisponivel = v.disponivel;
-            const statusTexto = statusDisponivel ? "Disponível" : "Ocupado";
-
-            // Buscar último motorista
-            const registrosReverso = [...dados.registros].reverse();
-            const ultimoRegistro = registrosReverso.find(r => r[2].includes(placa));
-            const motorista = ultimoRegistro ? ultimoRegistro[0] : "-";
-
-            const card = `
-              <div class="card ${statusDisponivel ? '' : 'ocupado'}">
-                <h3>${veiculoNome}</h3>
-                <div class="status ${statusDisponivel ? 'disponivel' : 'ocupadoStatus'}">${statusTexto}</div>
-                <div class="info"><strong>Último Motorista:</strong><br>${motorista}</div>
-                <div class="info"><strong>Saldo de Combustível:</strong><br>${saldo}</div>
-              </div>
-            `;
-            container.innerHTML += card;
-          });
-        })
-        .catch(err => {
-          const container = document.getElementById("cardsContainer");
-          container.innerHTML = `<div class="card"><p>Erro ao carregar dados.</p></div>`;
-          console.error(err);
+        // Ordenar: Disponíveis primeiro
+        veiculos.sort((a, b) => {
+          if (a.disponivel === b.disponivel) return 0;
+          return a.disponivel ? -1 : 1;
         });
-    }
 
-    carregarDados();
-    setInterval(carregarDados, 60000); // Atualiza a cada 60 segundos
+        veiculos.forEach(v => {
+          const card = document.createElement('div');
+          card.className = 'card' + (v.disponivel ? '' : ' ocupado');
+          card.innerHTML = `
+            <h3>${v.nome}</h3>
+            <p><strong>Placa:</strong> ${v.placa}</p>
+            <p><strong>Saldo:</strong> ${v.saldo}</p>
+            <p><strong>Status:</strong> ${v.disponivel ? '✅ Disponível' : '🚗 Ocupado'}</p>
+          `;
+          cardsDiv.appendChild(card);
+        });
+      });
   </script>
 </body>
 </html>
