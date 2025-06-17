@@ -15,13 +15,32 @@
       background-color: #043C64;
       color: white;
       text-align: center;
-      padding: 20px;
+      padding: 25px 10px;
     }
     header img {
       max-height: 80px;
+      margin-bottom: 10px;
+    }
+    header h1 {
+      margin: 5px;
+      font-size: 26px;
+    }
+    .consulta-btn {
+      background-color: white;
+      color: #043C64;
+      padding: 8px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      border: 2px solid #043C64;
+      font-weight: bold;
+      display: inline-block;
+      margin-top: 8px;
+    }
+    .consulta-btn:hover {
+      background-color: #e6f0f7;
     }
     main {
-      max-width: 720px;
+      max-width: 700px;
       margin: 30px auto;
       background: white;
       padding: 25px;
@@ -31,6 +50,7 @@
     h2 {
       text-align: center;
       color: #043C64;
+      font-size: 26px;
     }
     label {
       font-weight: bold;
@@ -40,7 +60,7 @@
     select, input, textarea {
       width: 100%;
       padding: 12px;
-      font-size: 18px;
+      font-size: 20px;
       margin-bottom: 15px;
       border: 1px solid #ccc;
       border-radius: 9px;
@@ -49,7 +69,7 @@
     button {
       width: 100%;
       padding: 15px;
-      font-size: 20px;
+      font-size: 22px;
       background-color: #043C64;
       color: white;
       border: none;
@@ -59,59 +79,17 @@
     button:hover {
       background-color: #065a95;
     }
-    .filter-buttons {
-      text-align: center;
-      margin-bottom: 15px;
-    }
-    .filter-buttons button {
-      width: auto;
-      margin: 3px;
-      background-color: #e0e0e0;
-      color: #043C64;
-    }
-    .filter-buttons .active {
-      background-color: #043C64;
-      color: white;
-      border: 2px solid #043C64;
-    }
     #feedback {
       text-align: center;
       font-weight: bold;
-      margin-top: 10px;
-      font-size: 18px;
+      margin-top: 15px;
+      font-size: 20px;
     }
     footer {
       text-align: center;
-      font-size: 14px;
+      font-size: 15px;
       color: #999;
       padding: 10px;
-    }
-    /* Modal de confirmação */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 999;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.5);
-    }
-    .modal-content {
-      background-color: white;
-      margin: 15% auto;
-      padding: 20px;
-      border-radius: 10px;
-      width: 90%;
-      max-width: 400px;
-      text-align: center;
-    }
-    .modal-content h3 {
-      margin-top: 0;
-    }
-    .modal-content button {
-      width: 45%;
-      margin: 5px;
     }
   </style>
 </head>
@@ -119,17 +97,11 @@
   <header>
     <img src="https://raw.githubusercontent.com/seduin/controle-veiculos/main/Logotipo_Prefeitura_horizontal_negativo.png" alt="Prefeitura de Joinville">
     <h1>Controle de Veículos</h1>
+    <a href="consulta.html" target="_blank" class="consulta-btn">🔍 Ver Consulta de Veículos</a>
   </header>
 
   <main>
     <h2>Formulário de Registro</h2>
-
-    <div class="filter-buttons">
-      <button id="btnAF" onclick="filtrarServidores('AF')">A-F</button>
-      <button id="btnGM" onclick="filtrarServidores('GM')">G-M</button>
-      <button id="btnNZ" onclick="filtrarServidores('NZ')">N-Z</button>
-      <button id="btnTodos" class="active" onclick="filtrarServidores('Todos')">Todos</button>
-    </div>
 
     <label for="servidor">Servidor</label>
     <select id="servidor">
@@ -164,17 +136,7 @@
     <button onclick="enviar()">Confirmar</button>
     <div id="feedback"></div>
   </main>
-
-  <footer>Desenvolvido por Tiago Nielson - v.3.4</footer>
-
-  <!-- Modal de confirmação -->
-  <div id="modal" class="modal">
-    <div class="modal-content">
-      <h3 id="modal-message">Confirma?</h3>
-      <button onclick="confirmarEnvio()">Sim</button>
-      <button onclick="fecharModal()">Cancelar</button>
-    </div>
-  </div>
+  <footer>Desenvolvido por Tiago Nielson - v3.5</footer>
 
   <script>
     const servidorSelect = document.getElementById("servidor");
@@ -184,8 +146,6 @@
     const obsDiv = document.getElementById("campoObservacao");
     const kmDiv = document.getElementById("campoKM");
     const feedbackDiv = document.getElementById("feedback");
-    const modal = document.getElementById("modal");
-    const modalMessage = document.getElementById("modal-message");
 
     const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
 
@@ -193,9 +153,6 @@
     let veiculos = [];
     let registros = [];
     let servidorComCarro = {};
-    let dadosParaEnviar = {};
-
-    let timeout;
 
     fetch(WEBAPP_URL + "?getDados=1")
       .then(r => r.json())
@@ -207,36 +164,14 @@
         preencherServidores();
       });
 
-    function resetTimeout() {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        limparFormulario();
-      }, 10000);
-    }
-
-    ["servidor", "acao", "veiculo", "observacao", "km"].forEach(id => {
-      document.getElementById(id).addEventListener('input', resetTimeout);
-    });
-
-    function preencherServidores(filtro = "Todos") {
+    function preencherServidores() {
       servidorSelect.innerHTML = `<option value="">Selecione...</option>`;
-      servidores.filter(nome => {
-        if (filtro === "AF") return /^[A-Fa-f]/.test(nome);
-        if (filtro === "GM") return /^[G-Mg-m]/.test(nome);
-        if (filtro === "NZ") return /^[N-Zn-z]/.test(nome);
-        return true;
-      }).forEach(nome => {
+      servidores.forEach(nome => {
         const opt = document.createElement("option");
         opt.value = nome;
         opt.textContent = nome;
         servidorSelect.appendChild(opt);
       });
-    }
-
-    function filtrarServidores(grupo) {
-      document.querySelectorAll(".filter-buttons button").forEach(b => b.classList.remove("active"));
-      document.getElementById(`btn${grupo}`).classList.add("active");
-      preencherServidores(grupo);
     }
 
     servidorSelect.addEventListener("change", () => {
@@ -293,25 +228,45 @@
       const km = document.getElementById("km").value;
 
       if (!servidor || !acao || !veiculo) {
-        mostrarFeedback("Preencha todos os campos obrigatórios.", "red");
+        feedbackDiv.textContent = "Preencha todos os campos obrigatórios.";
+        feedbackDiv.style.color = "red";
         return;
       }
 
-      if (acao === "Retorno" && !km) {
-        mostrarFeedback("Informe o KM na volta.", "red");
+      if (acao === "Retorno") {
+        if (!km) {
+          feedbackDiv.textContent = "Informe o KM na volta.";
+          feedbackDiv.style.color = "red";
+          return;
+        }
+        const ultRetorno = [...registros].reverse().find(r => r[2] === veiculo && r[1] === "Retorno");
+        if (ultRetorno) {
+          const ultKM = parseFloat(ultRetorno[3].toString().replace(/\D/g, ""));
+          const kmAtual = parseFloat(km);
+          const diff = kmAtual - ultKM;
+          if (isFinite(ultKM) && isFinite(kmAtual)) {
+            if (diff < 0) {
+              alert("Você só andou de ré? A KM está abaixo da última registrada. Confira!");
+              return;
+            }
+            if (diff > 500) {
+              alert("Por toda Joinville? Mais de 500km? Confira a KM!");
+              return;
+            }
+          }
+        }
+      }
+
+      if (!confirm(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`)) {
         return;
       }
 
-      dadosParaEnviar = { servidor, acao, veiculo, observacao, km };
-
-      modalMessage.textContent = `Confirma ${acao} do veículo ${veiculo} por ${servidor}?`;
-      modal.style.display = "block";
-    }
-
-    function confirmarEnvio() {
-      modal.style.display = "none";
-
-      const data = new URLSearchParams(dadosParaEnviar);
+      const data = new URLSearchParams();
+      data.append("servidor", servidor);
+      data.append("acao", acao);
+      data.append("veiculo", veiculo);
+      data.append("observacao", observacao);
+      data.append("km", km);
 
       fetch(WEBAPP_URL, {
         method: "POST",
@@ -320,8 +275,14 @@
       .then(r => r.text())
       .then(res => {
         if (res.includes("OK")) {
-          mostrarFeedback("✅ Registro enviado com sucesso!", "green");
-          limparFormulario();
+          feedbackDiv.textContent = "✅ Registro enviado com sucesso!";
+          feedbackDiv.style.color = "green";
+          servidorSelect.value = "";
+          acaoSelect.value = "";
+          veiculoSelect.innerHTML = "";
+          document.getElementById("observacao").value = "";
+          document.getElementById("km").value = "";
+          saldoDiv.textContent = "";
           fetch(WEBAPP_URL + "?getDados=1")
             .then(r => r.json())
             .then(d => {
@@ -329,36 +290,19 @@
               veiculos = d.veiculos;
               registros = d.registros || [];
               servidorComCarro = d.servidorComCarro || {};
-              preencherServidores(document.querySelector('.filter-buttons .active')?.id?.replace('btn', '') || 'Todos');
+              preencherServidores();
             });
+          setTimeout(() => {
+            feedbackDiv.textContent = "";
+          }, 5000);
         } else {
-          mostrarFeedback("Erro ao enviar.", "red");
+          feedbackDiv.textContent = "Erro ao enviar.";
+          feedbackDiv.style.color = "red";
         }
       }).catch(() => {
-        mostrarFeedback("Erro de conexão.", "red");
+        feedbackDiv.textContent = "Erro de conexão.";
+        feedbackDiv.style.color = "red";
       });
-    }
-
-    function fecharModal() {
-      modal.style.display = "none";
-    }
-
-    function mostrarFeedback(mensagem, cor) {
-      feedbackDiv.textContent = mensagem;
-      feedbackDiv.style.color = cor;
-      setTimeout(() => {
-        feedbackDiv.textContent = "";
-      }, 5000);
-    }
-
-    function limparFormulario() {
-      servidorSelect.value = "";
-      acaoSelect.value = "";
-      veiculoSelect.innerHTML = "";
-      document.getElementById("observacao").value = "";
-      document.getElementById("km").value = "";
-      saldoDiv.textContent = "";
-      preencherServidores(document.querySelector('.filter-buttons .active')?.id?.replace('btn', '') || 'Todos');
     }
   </script>
 </body>
