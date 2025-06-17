@@ -361,44 +361,72 @@
     });
 
     function alertBox(msg, confirmacao = false, callback = null) {
-      const box = document.createElement('div');
-      box.style.position = 'fixed';
-      box.style.top = '0';
-      box.style.left = '0';
-      box.style.width = '100%';
-      box.style.height = '100%';
-      box.style.background = 'rgba(0,0,0,0.7)';
-      box.style.display = 'flex';
-      box.style.justifyContent = 'center';
-      box.style.alignItems = 'center';
-      box.style.zIndex = '9999';
+  const box = document.createElement('div');
+  box.style.position = 'fixed';
+  box.style.top = '0';
+  box.style.left = '0';
+  box.style.width = '100%';
+  box.style.height = '100%';
+  box.style.background = 'rgba(0,0,0,0.7)';
+  box.style.display = 'flex';
+  box.style.justifyContent = 'center';
+  box.style.alignItems = 'center';
+  box.style.zIndex = '9999';
 
-      const conteudo = document.createElement('div');
-      conteudo.style.background = 'white';
-      conteudo.style.padding = '20px';
-      conteudo.style.borderRadius = '10px';
-      conteudo.style.textAlign = 'center';
-      conteudo.innerHTML = `<p>${msg}</p>`;
+  const conteudo = document.createElement('div');
+  conteudo.style.background = 'white';
+  conteudo.style.padding = '25px';
+  conteudo.style.borderRadius = '12px';
+  conteudo.style.textAlign = 'center';
+  conteudo.style.maxWidth = '400px';
+  conteudo.style.boxShadow = '0 0 15px rgba(0,0,0,0.3)';
 
-      const btnOk = document.createElement('button');
-      btnOk.textContent = confirmacao ? 'Confirmar' : 'OK';
-      btnOk.onclick = () => {
-        document.body.removeChild(box);
-        if (confirmacao && callback) callback();
-      };
-      conteudo.appendChild(btnOk);
+  const texto = document.createElement('p');
+  texto.textContent = msg;
+  texto.style.marginBottom = '20px';
+  texto.style.fontSize = '18px';
+  texto.style.lineHeight = '1.4';
+  conteudo.appendChild(texto);
 
-      if (confirmacao) {
-        const btnCancel = document.createElement('button');
-        btnCancel.textContent = 'Cancelar';
-        btnCancel.style.marginLeft = '10px';
-        btnCancel.onclick = () => document.body.removeChild(box);
-        conteudo.appendChild(btnCancel);
-      }
+  const botoes = document.createElement('div');
+  botoes.style.display = 'flex';
+  botoes.style.justifyContent = confirmacao ? 'space-between' : 'center';
+  botoes.style.gap = '10px';
 
-      box.appendChild(conteudo);
-      document.body.appendChild(box);
-    }
+  const btnOk = document.createElement('button');
+  btnOk.textContent = confirmacao ? '✅ Confirmar' : 'OK';
+  btnOk.style.padding = '10px 20px';
+  btnOk.style.fontSize = '16px';
+  btnOk.style.border = 'none';
+  btnOk.style.borderRadius = '8px';
+  btnOk.style.cursor = 'pointer';
+  btnOk.style.backgroundColor = '#043C64';
+  btnOk.style.color = 'white';
+  btnOk.onclick = () => {
+    document.body.removeChild(box);
+    if (confirmacao && callback) callback();
+  };
+  botoes.appendChild(btnOk);
+
+  if (confirmacao) {
+    const btnCancel = document.createElement('button');
+    btnCancel.textContent = '❌ Cancelar';
+    btnCancel.style.padding = '10px 20px';
+    btnCancel.style.fontSize = '16px';
+    btnCancel.style.border = 'none';
+    btnCancel.style.borderRadius = '8px';
+    btnCancel.style.cursor = 'pointer';
+    btnCancel.style.backgroundColor = '#ccc';
+    btnCancel.style.color = 'black';
+    btnCancel.onclick = () => document.body.removeChild(box);
+    botoes.appendChild(btnCancel);
+  }
+
+  conteudo.appendChild(botoes);
+  box.appendChild(conteudo);
+  document.body.appendChild(box);
+}
+
   </script>
 </body>
 </html>
