@@ -111,6 +111,26 @@
       margin: 0 10px;
       padding: 10px 20px;
     }
+
+    .filtro-botoes {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .filtro-botoes button {
+      width: auto;
+      margin: 0 5px 10px 5px;
+      padding: 6px 14px;
+      font-size: 15px;
+      background-color: #e0e0e0;
+      color: #043C64;
+      border: 1px solid #043C64;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+    .filtro-botoes button.ativo {
+      background-color: #043C64;
+      color: white;
+    }
   </style>
 </head>
 
@@ -122,6 +142,13 @@
 
   <main>
     <h2>Formulário de Registro</h2>
+
+    <div class="filtro-botoes">
+      <button onclick="filtrarServidores('AF')" id="btnAF">A-F</button>
+      <button onclick="filtrarServidores('GM')" id="btnGM">G-M</button>
+      <button onclick="filtrarServidores('NZ')" id="btnNZ">N-Z</button>
+      <button onclick="filtrarServidores('ALL')" id="btnALL" class="ativo">Todos</button>
+    </div>
 
     <label for="servidor">Servidor</label>
     <select id="servidor">
@@ -175,6 +202,7 @@
   const feedbackDiv = document.getElementById("feedback");
 
   let servidores = [];
+  let servidoresFiltrados = [];
   let veiculos = [];
   let registros = [];
   let servidorComCarro = {};
@@ -184,6 +212,7 @@
     .then(r => r.json())
     .then(d => {
       servidores = d.servidores;
+      servidoresFiltrados = servidores;
       veiculos = d.veiculos;
       registros = d.registros || [];
       servidorComCarro = d.servidorComCarro || {};
@@ -192,12 +221,30 @@
 
   function preencherServidores() {
     servidorSelect.innerHTML = `<option value="">Selecione...</option>`;
-    servidores.forEach(nome => {
+    servidoresFiltrados.forEach(nome => {
       const opt = document.createElement("option");
       opt.value = nome;
       opt.textContent = nome;
       servidorSelect.appendChild(opt);
     });
+  }
+
+  function filtrarServidores(grupo) {
+    document.querySelectorAll('.filtro-botoes button').forEach(b => b.classList.remove('ativo'));
+    if (grupo === 'AF') {
+      servidoresFiltrados = servidores.filter(nome => /^[A-Fa-f]/.test(nome));
+      document.getElementById('btnAF').classList.add('ativo');
+    } else if (grupo === 'GM') {
+      servidoresFiltrados = servidores.filter(nome => /^[G-Mg-m]/.test(nome));
+      document.getElementById('btnGM').classList.add('ativo');
+    } else if (grupo === 'NZ') {
+      servidoresFiltrados = servidores.filter(nome => /^[N-Zn-z]/.test(nome));
+      document.getElementById('btnNZ').classList.add('ativo');
+    } else {
+      servidoresFiltrados = servidores;
+      document.getElementById('btnALL').classList.add('ativo');
+    }
+    preencherServidores();
   }
 
   servidorSelect.addEventListener("change", resetInatividade);
@@ -352,6 +399,7 @@
     document.getElementById("km").value = "";
     saldoDiv.textContent = "";
     clearTimeout(timeoutLimpeza);
+    filtrarServidores('ALL');
   }
 
   function resetInatividade() {
