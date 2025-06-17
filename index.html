@@ -14,22 +14,21 @@
     header {
       background-color: #043C64;
       color: white;
-      text-align: center;
       padding: 25px 10px;
-      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
     header img {
       max-height: 80px;
-      margin-bottom: 5px;
     }
     header h1 {
-      margin: 5px;
+      margin: 0;
       font-size: 26px;
+      flex: 1;
+      text-align: center;
     }
     .botao-consulta {
-      position: absolute;
-      right: 20px;
-      top: 20px;
       background-color: white;
       color: #043C64;
       padding: 8px 16px;
@@ -43,6 +42,7 @@
     .botao-consulta:hover {
       background-color: #d5e7f4;
     }
+
     main {
       max-width: 700px;
       margin: 30px auto;
@@ -126,6 +126,7 @@
     }
   </style>
 </head>
+
 <body>
   <header>
     <img src="https://raw.githubusercontent.com/seduin/controle-veiculos/main/Logotipo_Prefeitura_horizontal_negativo.png" alt="Prefeitura de Joinville">
@@ -172,204 +173,206 @@
 
   <footer>Desenvolvido por Tiago Nielson - v4.0</footer>
 
-  <script>
-    const servidorSelect = document.getElementById("servidor");
-    const acaoSelect = document.getElementById("acao");
-    const veiculoSelect = document.getElementById("veiculo");
-    const saldoDiv = document.getElementById("saldo");
-    const obsDiv = document.getElementById("campoObservacao");
-    const kmDiv = document.getElementById("campoKM");
-    const feedbackDiv = document.getElementById("feedback");
-    const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
+<script>
+  // 🔥 ENDEREÇO DO PROXY VERCEL
+  const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
 
-    let servidores = [];
-    let veiculos = [];
-    let registros = [];
-    let servidorComCarro = {};
+  const servidorSelect = document.getElementById("servidor");
+  const acaoSelect = document.getElementById("acao");
+  const veiculoSelect = document.getElementById("veiculo");
+  const saldoDiv = document.getElementById("saldo");
+  const obsDiv = document.getElementById("campoObservacao");
+  const kmDiv = document.getElementById("campoKM");
+  const feedbackDiv = document.getElementById("feedback");
 
-    let timeoutLimpeza;
+  let servidores = [];
+  let veiculos = [];
+  let registros = [];
+  let servidorComCarro = {};
+  let timeoutLimpeza;
 
-    fetch(WEBAPP_URL + "?getDados=1")
-      .then(r => r.json())
-      .then(d => {
-        servidores = d.servidores;
-        veiculos = d.veiculos;
-        registros = d.registros || [];
-        servidorComCarro = d.servidorComCarro || {};
-        preencherServidores();
+  fetch(WEBAPP_URL + "?getDados=1")
+    .then(r => r.json())
+    .then(d => {
+      servidores = d.servidores;
+      veiculos = d.veiculos;
+      registros = d.registros || [];
+      servidorComCarro = d.servidorComCarro || {};
+      preencherServidores();
+    });
+
+  function preencherServidores() {
+    servidorSelect.innerHTML = `<option value="">Selecione...</option>`;
+    servidores.forEach(nome => {
+      const opt = document.createElement("option");
+      opt.value = nome;
+      opt.textContent = nome;
+      servidorSelect.appendChild(opt);
+    });
+  }
+
+  servidorSelect.addEventListener("change", resetInatividade);
+  acaoSelect.addEventListener("change", resetInatividade);
+  veiculoSelect.addEventListener("change", resetInatividade);
+  document.getElementById("observacao").addEventListener("input", resetInatividade);
+  document.getElementById("km").addEventListener("input", resetInatividade);
+
+  servidorSelect.addEventListener("change", () => {
+    const servidor = servidorSelect.value;
+    const veiculoAnterior = servidorComCarro[servidor];
+    if (veiculoAnterior) {
+      acaoSelect.value = "Retorno";
+      acaoSelect.dispatchEvent(new Event("change"));
+      setTimeout(() => {
+        const opt = [...veiculoSelect.options].find(o => o.value.includes(veiculoAnterior));
+        if (opt) {
+          veiculoSelect.value = opt.value;
+          veiculoSelect.dispatchEvent(new Event("change"));
+        }
+      }, 300);
+      [...acaoSelect.options].forEach(o => {
+        if (o.value === "Saída") o.disabled = true;
       });
+    } else {
+      [...acaoSelect.options].forEach(o => o.disabled = false);
+    }
+  });
 
-    function preencherServidores() {
-      servidorSelect.innerHTML = `<option value="">Selecione...</option>`;
-      servidores.forEach(nome => {
-        const opt = document.createElement("option");
-        opt.value = nome;
-        opt.textContent = nome;
-        servidorSelect.appendChild(opt);
-      });
+  acaoSelect.addEventListener("change", () => {
+    const tipo = acaoSelect.value;
+    veiculoSelect.innerHTML = `<option value="">Carregando...</option>`;
+    const opcoes = veiculos.filter(v =>
+      (tipo === "Saída" && v.disponivel) ||
+      (tipo === "Retorno" && !v.disponivel) ||
+      (tipo === "Lavação" && v.disponivel)
+    );
+    veiculoSelect.innerHTML = `<option value="">Selecione...</option>`;
+    opcoes.forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v.nome;
+      opt.textContent = `${v.nome} (${v.saldo})`;
+      veiculoSelect.appendChild(opt);
+    });
+    saldoDiv.textContent = "";
+    obsDiv.style.display = (tipo === "Saída" || tipo === "Lavação") ? "block" : "none";
+    kmDiv.style.display = tipo === "Retorno" ? "block" : "none";
+  });
+
+  veiculoSelect.addEventListener("change", () => {
+    const v = veiculos.find(v => v.nome === veiculoSelect.value);
+    saldoDiv.textContent = v ? `Saldo: ${v.saldo}` : "";
+  });
+
+  function enviar() {
+    const servidor = servidorSelect.value;
+    const acao = acaoSelect.value;
+    const veiculo = veiculoSelect.value;
+    const observacao = document.getElementById("observacao").value;
+    const km = document.getElementById("km").value;
+
+    if (!servidor || !acao || !veiculo) {
+      feedbackDiv.textContent = "Preencha todos os campos obrigatórios.";
+      feedbackDiv.style.color = "red";
+      return;
     }
 
-    servidorSelect.addEventListener("change", resetInatividade);
-    acaoSelect.addEventListener("change", resetInatividade);
-    veiculoSelect.addEventListener("change", resetInatividade);
-    document.getElementById("observacao").addEventListener("input", resetInatividade);
-    document.getElementById("km").addEventListener("input", resetInatividade);
-
-    servidorSelect.addEventListener("change", () => {
-      const servidor = servidorSelect.value;
-      const veiculoAnterior = servidorComCarro[servidor];
-      if (veiculoAnterior) {
-        acaoSelect.value = "Retorno";
-        acaoSelect.dispatchEvent(new Event("change"));
-        setTimeout(() => {
-          const opt = [...veiculoSelect.options].find(o => o.value.includes(veiculoAnterior));
-          if (opt) {
-            veiculoSelect.value = opt.value;
-            veiculoSelect.dispatchEvent(new Event("change"));
-          }
-        }, 300);
-        [...acaoSelect.options].forEach(o => {
-          if (o.value === "Saída") o.disabled = true;
-        });
-      } else {
-        [...acaoSelect.options].forEach(o => o.disabled = false);
-      }
-    });
-
-    acaoSelect.addEventListener("change", () => {
-      const tipo = acaoSelect.value;
-      veiculoSelect.innerHTML = `<option value="">Carregando...</option>`;
-      const opcoes = veiculos.filter(v =>
-        (tipo === "Saída" && v.disponivel) ||
-        (tipo === "Retorno" && !v.disponivel) ||
-        (tipo === "Lavação" && v.disponivel)
-      );
-      veiculoSelect.innerHTML = `<option value="">Selecione...</option>`;
-      opcoes.forEach(v => {
-        const opt = document.createElement("option");
-        opt.value = v.nome;
-        opt.textContent = `${v.nome} (${v.saldo})`;
-        veiculoSelect.appendChild(opt);
-      });
-      saldoDiv.textContent = "";
-      obsDiv.style.display = (tipo === "Saída" || tipo === "Lavação") ? "block" : "none";
-      kmDiv.style.display = tipo === "Retorno" ? "block" : "none";
-    });
-
-    veiculoSelect.addEventListener("change", () => {
-      const v = veiculos.find(v => v.nome === veiculoSelect.value);
-      saldoDiv.textContent = v ? `Saldo: ${v.saldo}` : "";
-    });
-
-    function enviar() {
-      const servidor = servidorSelect.value;
-      const acao = acaoSelect.value;
-      const veiculo = veiculoSelect.value;
-      const observacao = document.getElementById("observacao").value;
-      const km = document.getElementById("km").value;
-
-      if (!servidor || !acao || !veiculo) {
-        feedbackDiv.textContent = "Preencha todos os campos obrigatórios.";
+    if (acao === "Retorno") {
+      if (!km) {
+        feedbackDiv.textContent = "Informe o KM na volta.";
         feedbackDiv.style.color = "red";
         return;
       }
-
-      if (acao === "Retorno") {
-        if (!km) {
-          feedbackDiv.textContent = "Informe o KM na volta.";
-          feedbackDiv.style.color = "red";
-          return;
-        }
-        const ultRetorno = [...registros].reverse().find(r => r[2] === veiculo && r[1] === "Retorno");
-        if (ultRetorno) {
-          const ultKM = parseFloat(ultRetorno[3].toString().replace(/\D/g, ""));
-          const kmAtual = parseFloat(km);
-          const diff = kmAtual - ultKM;
-          if (isFinite(ultKM) && isFinite(kmAtual)) {
-            if (diff < 0) {
-              alert("Você só andou de ré? A KM está abaixo da última registrada. Confira!");
-              return;
-            }
-            if (diff > 500) {
-              alert("Por toda Joinville? Mais de 500km? Confira a KM!");
-              return;
-            }
+      const ultRetorno = [...registros].reverse().find(r => r[2] === veiculo && r[1] === "Retorno");
+      if (ultRetorno) {
+        const ultKM = parseFloat(ultRetorno[3].toString().replace(/\D/g, ""));
+        const kmAtual = parseFloat(km);
+        const diff = kmAtual - ultKM;
+        if (isFinite(ultKM) && isFinite(kmAtual)) {
+          if (diff < 0) {
+            alert("Você só andou de ré? A KM está abaixo da última registrada. Confira!");
+            return;
+          }
+          if (diff > 500) {
+            alert("Por toda Joinville? Mais de 500km? Confira a KM!");
+            return;
           }
         }
       }
+    }
 
-      exibirConfirmacao(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`, () => {
-        const data = new URLSearchParams();
-        data.append("servidor", servidor);
-        data.append("acao", acao);
-        data.append("veiculo", veiculo);
-        data.append("observacao", observacao);
-        data.append("km", km);
+    exibirConfirmacao(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`, () => {
+      const data = new URLSearchParams();
+      data.append("servidor", servidor);
+      data.append("acao", acao);
+      data.append("veiculo", veiculo);
+      data.append("observacao", observacao);
+      data.append("km", km);
 
-        fetch(WEBAPP_URL, {
-          method: "POST",
-          body: data
-        })
-        .then(r => r.text())
-        .then(res => {
-          if (res.includes("OK")) {
-            feedbackDiv.textContent = "✅ Registro enviado com sucesso!";
-            feedbackDiv.style.color = "green";
-            setTimeout(() => feedbackDiv.textContent = "", 5000);
-            limparFormulario();
-          } else {
-            feedbackDiv.textContent = "Erro ao enviar.";
-            feedbackDiv.style.color = "red";
-          }
-        }).catch(() => {
-          feedbackDiv.textContent = "Erro de conexão.";
+      fetch(WEBAPP_URL, {
+        method: "POST",
+        body: data
+      })
+      .then(r => r.text())
+      .then(res => {
+        if (res.includes("OK")) {
+          feedbackDiv.textContent = "✅ Registro enviado com sucesso!";
+          feedbackDiv.style.color = "green";
+          setTimeout(() => feedbackDiv.textContent = "", 5000);
+          limparFormulario();
+        } else {
+          feedbackDiv.textContent = "Erro ao enviar.";
           feedbackDiv.style.color = "red";
-        });
+        }
+      }).catch(() => {
+        feedbackDiv.textContent = "Erro de conexão.";
+        feedbackDiv.style.color = "red";
       });
-    }
+    });
+  }
 
-    function exibirConfirmacao(msg, callback) {
-      const overlay = document.createElement('div');
-      overlay.className = 'confirm-overlay';
+  function exibirConfirmacao(msg, callback) {
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
 
-      const box = document.createElement('div');
-      box.className = 'confirm-box';
+    const box = document.createElement('div');
+    box.className = 'confirm-box';
 
-      box.innerHTML = `
-        <p>${msg}</p>
-        <button id="confirmSim">Confirmar</button>
-        <button id="confirmNao">Cancelar</button>
-      `;
+    box.innerHTML = `
+      <p>${msg}</p>
+      <button id="confirmSim">Confirmar</button>
+      <button id="confirmNao">Cancelar</button>
+    `;
 
-      overlay.appendChild(box);
-      document.body.appendChild(overlay);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
 
-      document.getElementById('confirmSim').onclick = () => {
-        document.body.removeChild(overlay);
-        callback();
-      };
-      document.getElementById('confirmNao').onclick = () => {
-        document.body.removeChild(overlay);
-      };
-    }
+    document.getElementById('confirmSim').onclick = () => {
+      document.body.removeChild(overlay);
+      callback();
+    };
+    document.getElementById('confirmNao').onclick = () => {
+      document.body.removeChild(overlay);
+    };
+  }
 
-    function limparFormulario() {
-      servidorSelect.value = "";
-      acaoSelect.value = "";
-      veiculoSelect.innerHTML = "";
-      document.getElementById("observacao").value = "";
-      document.getElementById("km").value = "";
-      saldoDiv.textContent = "";
-      clearTimeout(timeoutLimpeza);
-    }
+  function limparFormulario() {
+    servidorSelect.value = "";
+    acaoSelect.value = "";
+    veiculoSelect.innerHTML = "";
+    document.getElementById("observacao").value = "";
+    document.getElementById("km").value = "";
+    saldoDiv.textContent = "";
+    clearTimeout(timeoutLimpeza);
+  }
 
-    function resetInatividade() {
-      clearTimeout(timeoutLimpeza);
-      timeoutLimpeza = setTimeout(() => {
-        limparFormulario();
-        feedbackDiv.textContent = "";
-      }, 10000);
-    }
-  </script>
+  function resetInatividade() {
+    clearTimeout(timeoutLimpeza);
+    timeoutLimpeza = setTimeout(() => {
+      limparFormulario();
+      feedbackDiv.textContent = "";
+    }, 10000);
+  }
+</script>
+
 </body>
 </html>
