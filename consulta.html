@@ -38,12 +38,20 @@
     .card {
       background: white;
       border-radius: 14px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
       padding: 20px;
+      border-top: 6px solid #043C64;
+      transition: transform 0.2s ease;
+      text-align: center;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      border-top: 6px solid #043C64;
+      justify-content: center;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+    }
+    .card.ocupado {
+      opacity: 0.5;
     }
     .card h3 {
       margin: 0;
@@ -51,18 +59,25 @@
       color: #043C64;
     }
     .status {
-      margin: 10px 0;
+      margin: 12px 0;
       font-weight: bold;
       font-size: 18px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: inline-block;
     }
     .disponivel {
-      color: green;
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
     }
-    .ocupado {
-      color: red;
+    .ocupadoStatus {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
     }
     .info {
-      margin: 4px 0;
+      margin: 6px 0;
       font-size: 16px;
     }
     footer {
@@ -83,7 +98,7 @@
       <div class="card"><p>Carregando...</p></div>
     </div>
   </main>
-  <footer>Desenvolvido por Tiago Nielson - v1.1</footer>
+  <footer>Desenvolvido por Tiago Nielson - v1.3</footer>
 
   <script>
     const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
@@ -95,11 +110,17 @@
           const container = document.getElementById("cardsContainer");
           container.innerHTML = "";
 
-          dados.veiculos.forEach(v => {
+          // Ordena: disponíveis primeiro, depois ocupados
+          const veiculosOrdenados = dados.veiculos.sort((a, b) => {
+            return (a.disponivel === b.disponivel) ? 0 : a.disponivel ? -1 : 1;
+          });
+
+          veiculosOrdenados.forEach(v => {
             const placa = v.placa;
             const veiculoNome = v.nome;
             const saldo = v.saldo;
-            const status = v.disponivel ? "Disponível" : "Ocupado";
+            const statusDisponivel = v.disponivel;
+            const statusTexto = statusDisponivel ? "Disponível" : "Ocupado";
 
             // Buscar último motorista
             const registrosReverso = [...dados.registros].reverse();
@@ -107,11 +128,11 @@
             const motorista = ultimoRegistro ? ultimoRegistro[0] : "-";
 
             const card = `
-              <div class="card">
+              <div class="card ${statusDisponivel ? '' : 'ocupado'}">
                 <h3>${veiculoNome}</h3>
-                <div class="status ${v.disponivel ? 'disponivel' : 'ocupado'}">${status}</div>
-                <div class="info"><strong>Último Motorista:</strong> ${motorista}</div>
-                <div class="info"><strong>Saldo de Combustível:</strong> ${saldo}</div>
+                <div class="status ${statusDisponivel ? 'disponivel' : 'ocupadoStatus'}">${statusTexto}</div>
+                <div class="info"><strong>Último Motorista:</strong><br>${motorista}</div>
+                <div class="info"><strong>Saldo de Combustível:</strong><br>${saldo}</div>
               </div>
             `;
             container.innerHTML += card;
