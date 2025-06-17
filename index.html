@@ -80,6 +80,27 @@
       margin-top: 15px;
       font-size: 20px;
     }
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      z-index: 9999;
+      text-align: center;
+      border: 3px solid #043C64;
+    }
+    .popup button {
+      margin-top: 15px;
+      width: 100px;
+    }
+    .popup-message {
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
     footer {
       text-align: center;
       font-size: 15px;
@@ -136,7 +157,7 @@
     <button id="confirmar" onclick="enviar()">Confirmar</button>
     <div id="feedback"></div>
   </main>
-  <footer>Desenvolvido por Tiago Nielson - v.3.2</footer>
+  <footer>Desenvolvido por Tiago Nielson - v.3.3</footer>
 
 <script>
   const servidorSelect = document.getElementById("servidor");
@@ -153,7 +174,6 @@
   let veiculos = [];
   let registros = [];
   let servidorComCarro = {};
-  let dadosPendentes = null;
   let inatividadeTimer;
 
   fetch(WEBAPP_URL + "?getDados=1")
@@ -235,6 +255,25 @@
     saldoDiv.textContent = v ? `Saldo: ${v.saldo}` : "";
   });
 
+  function popupConfirm(mensagem, callback) {
+    const popup = document.createElement("div");
+    popup.className = "popup";
+    popup.innerHTML = `
+      <div class="popup-message">${mensagem}</div>
+      <button id="confirmarBtn">Sim</button>
+      <button id="cancelarBtn">Não</button>
+    `;
+    document.body.appendChild(popup);
+    document.getElementById("confirmarBtn").onclick = () => {
+      document.body.removeChild(popup);
+      callback(true);
+    };
+    document.getElementById("cancelarBtn").onclick = () => {
+      document.body.removeChild(popup);
+      callback(false);
+    };
+  }
+
   function mostrarFeedback(mensagem, cor) {
     feedbackDiv.textContent = mensagem;
     feedbackDiv.style.color = cor;
@@ -251,7 +290,6 @@
     document.getElementById("km").value = "";
     saldoDiv.textContent = "";
     feedbackDiv.textContent = "";
-    dadosPendentes = null;
     preencherServidores(document.querySelector('.filter-buttons .active')?.id?.replace('btn', '') || 'Todos');
   }
 
@@ -301,39 +339,40 @@
       }
     }
 
-    const confirmacao = confirm(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`);
-    if (!confirmacao) return;
+    popupConfirm(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`, (confirmado) => {
+      if (!confirmado) return;
 
-    const data = new URLSearchParams();
-    data.append("servidor", servidor);
-    data.append("acao", acao);
-    data.append("veiculo", veiculo);
-    data.append("observacao", observacao);
-    data.append("km", km);
+      const data = new URLSearchParams();
+      data.append("servidor", servidor);
+      data.append("acao", acao);
+      data.append("veiculo", veiculo);
+      data.append("observacao", observacao);
+      data.append("km", km);
 
-    fetch(WEBAPP_URL, {
-      method: "POST",
-      body: data
-    })
-    .then(r => r.text())
-    .then(res => {
-      if (res.includes("OK")) {
-        mostrarFeedback("✅ Registro enviado com sucesso!", "green");
-        limparFormulario();
-        fetch(WEBAPP_URL + "?getDados=1")
-          .then(r => r.json())
-          .then(d => {
-            servidores = d.servidores;
-            veiculos = d.veiculos;
-            registros = d.registros || [];
-            servidorComCarro = d.servidorComCarro || {};
-            preencherServidores();
-          });
-      } else {
-        mostrarFeedback("Erro ao enviar.", "red");
-      }
-    }).catch(() => {
-      mostrarFeedback("Erro de conexão.", "red");
+      fetch(WEBAPP_URL, {
+        method: "POST",
+        body: data
+      })
+      .then(r => r.text())
+      .then(res => {
+        if (res.includes("OK")) {
+          mostrarFeedback("✅ Registro enviado com sucesso!", "green");
+          limparFormulario();
+          fetch(WEBAPP_URL + "?getDados=1")
+            .then(r => r.json())
+            .then(d => {
+              servidores = d.servidores;
+              veiculos = d.veiculos;
+              registros = d.registros || [];
+              servidorComCarro = d.servidorComCarro || {};
+              preencherServidores();
+            });
+        } else {
+          mostrarFeedback("Erro ao enviar.", "red");
+        }
+      }).catch(() => {
+        mostrarFeedback("Erro de conexão.", "red");
+      });
     });
   }
 </script>
