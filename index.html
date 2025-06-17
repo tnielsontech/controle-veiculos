@@ -14,33 +14,16 @@
     header {
       background-color: #043C64;
       color: white;
+      text-align: center;
       padding: 25px 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
     }
     header img {
       max-height: 80px;
+      margin-bottom: 8px;
     }
     header h1 {
       margin: 0;
       font-size: 26px;
-      flex: 1;
-      text-align: center;
-    }
-    .botao-consulta {
-      background-color: white;
-      color: #043C64;
-      padding: 8px 16px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 16px;
-      transition: 0.3s;
-    }
-    .botao-consulta:hover {
-      background-color: #d5e7f4;
     }
 
     main {
@@ -96,7 +79,6 @@
       padding: 10px;
     }
 
-    /* Box de confirmação estilizado */
     .confirm-overlay {
       position: fixed;
       top: 0; left: 0;
@@ -131,7 +113,6 @@
   <header>
     <img src="https://raw.githubusercontent.com/seduin/controle-veiculos/main/Logotipo_Prefeitura_horizontal_negativo.png" alt="Prefeitura de Joinville">
     <h1>Controle de Veículos</h1>
-    <button class="botao-consulta" onclick="window.location.href='consulta.html'">Consulta</button>
   </header>
 
   <main>
@@ -174,7 +155,6 @@
   <footer>Desenvolvido por Tiago Nielson - v4.0</footer>
 
 <script>
-  // 🔥 ENDEREÇO DO PROXY VERCEL
   const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
 
   const servidorSelect = document.getElementById("servidor");
