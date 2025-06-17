@@ -116,7 +116,7 @@
     <button onclick="enviar()">Confirmar</button>
     <div id="feedback"></div>
   </main>
-  <footer>Desenvolvido por Tiago Nielson - v.1.x1</footer>
+  <footer>Desenvolvido por Tiago Nielson - v.1.x2</footer>
 
   <script>
     const servidorSelect = document.getElementById("servidor");
@@ -241,16 +241,20 @@
         return;
       }
 
-      const data = new URLSearchParams();
-      data.append("servidor", servidor);
-      data.append("acao", acao);
-      data.append("veiculo", veiculo);
-      data.append("observacao", observacao);
-      data.append("km", km);
+      const data = {
+        servidor,
+        acao,
+        veiculo,
+        observacao,
+        km
+      };
 
       fetch(WEBAPP_URL, {
         method: "POST",
-        body: data
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
       })
       .then(r => r.text())
       .then(res => {
