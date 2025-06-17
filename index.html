@@ -73,13 +73,57 @@
       color: #999;
       padding: 10px;
     }
+
+    /* POPUP */
+    #popupConfirm {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.6);
+    }
+    #popupBox {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 400px;
+      margin: 20vh auto;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+    #popupBox p {
+      margin-bottom: 20px;
+      font-size: 20px;
+      color: #043C64;
+    }
+    .popup-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      margin: 0 10px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .popup-confirm {
+      background-color: #043C64;
+      color: white;
+    }
+    .popup-cancel {
+      background-color: #ccc;
+      color: #333;
+    }
   </style>
 </head>
+
 <body>
   <header>
     <img src="https://raw.githubusercontent.com/seduin/controle-veiculos/main/Logotipo_Prefeitura_horizontal_negativo.png" alt="Prefeitura de Joinville">
     <h1>Controle de Veículos</h1>
   </header>
+
   <main>
     <h2>Formulário de Registro</h2>
 
@@ -116,7 +160,17 @@
     <button onclick="enviar()">Confirmar</button>
     <div id="feedback"></div>
   </main>
-  <footer>Desenvolvido por Tiago Nielson - v.1.x2</footer>
+
+  <footer>Desenvolvido por Tiago Nielson - v.4.2</footer>
+
+  <!-- POPUP -->
+  <div id="popupConfirm">
+    <div id="popupBox">
+      <p id="popupMessage">Confirma?</p>
+      <button class="popup-btn popup-confirm" onclick="confirmarPopup()">Confirmar</button>
+      <button class="popup-btn popup-cancel" onclick="cancelarPopup()">Cancelar</button>
+    </div>
+  </div>
 
   <script>
     const servidorSelect = document.getElementById("servidor");
@@ -200,6 +254,25 @@
       saldoDiv.textContent = v ? `Saldo: ${v.saldo}` : "";
     });
 
+    // === POPUP Functions ===
+    let confirmCallback = null;
+
+    function abrirPopup(mensagem, callback) {
+      document.getElementById("popupMessage").innerText = mensagem;
+      document.getElementById("popupConfirm").style.display = "block";
+      confirmCallback = callback;
+    }
+
+    function confirmarPopup() {
+      document.getElementById("popupConfirm").style.display = "none";
+      if (confirmCallback) confirmCallback(true);
+    }
+
+    function cancelarPopup() {
+      document.getElementById("popupConfirm").style.display = "none";
+      if (confirmCallback) confirmCallback(false);
+    }
+
     function enviar() {
       const servidor = servidorSelect.value;
       const acao = acaoSelect.value;
@@ -237,52 +310,48 @@
         }
       }
 
-      if (!confirm(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`)) {
-        return;
-      }
+      abrirPopup(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`, (confirmado) => {
+        if (!confirmado) return;
 
-      const data = {
-        servidor,
-        acao,
-        veiculo,
-        observacao,
-        km
-      };
+        const data = new URLSearchParams();
+        data.append("servidor", servidor);
+        data.append("acao", acao);
+        data.append("veiculo", veiculo);
+        data.append("observacao", observacao);
+        data.append("km", km);
 
-      fetch(WEBAPP_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(data)
-      })
-      .then(r => r.text())
-      .then(res => {
-        if (res.includes("OK")) {
-          feedbackDiv.textContent = "✅ Registro enviado com sucesso!";
-          feedbackDiv.style.color = "green";
-          servidorSelect.value = "";
-          acaoSelect.value = "";
-          veiculoSelect.innerHTML = "";
-          document.getElementById("observacao").value = "";
-          document.getElementById("km").value = "";
-          saldoDiv.textContent = "";
-          fetch(WEBAPP_URL + "?getDados=1")
-            .then(r => r.json())
-            .then(d => {
-              servidores = d.servidores;
-              veiculos = d.veiculos;
-              registros = d.registros || [];
-              servidorComCarro = d.servidorComCarro || {};
-              preencherServidores();
-            });
-        } else {
-          feedbackDiv.textContent = "Erro ao enviar.";
+        fetch(WEBAPP_URL, {
+          method: "POST",
+          body: data
+        })
+        .then(r => r.text())
+        .then(res => {
+          if (res.includes("OK")) {
+            feedbackDiv.textContent = "✅ Registro enviado com sucesso!";
+            feedbackDiv.style.color = "green";
+            servidorSelect.value = "";
+            acaoSelect.value = "";
+            veiculoSelect.innerHTML = "";
+            document.getElementById("observacao").value = "";
+            document.getElementById("km").value = "";
+            saldoDiv.textContent = "";
+            fetch(WEBAPP_URL + "?getDados=1")
+              .then(r => r.json())
+              .then(d => {
+                servidores = d.servidores;
+                veiculos = d.veiculos;
+                registros = d.registros || [];
+                servidorComCarro = d.servidorComCarro || {};
+                preencherServidores();
+              });
+          } else {
+            feedbackDiv.textContent = "Erro ao enviar.";
+            feedbackDiv.style.color = "red";
+          }
+        }).catch(() => {
+          feedbackDiv.textContent = "Erro de conexão.";
           feedbackDiv.style.color = "red";
-        }
-      }).catch(() => {
-        feedbackDiv.textContent = "Erro de conexão.";
-        feedbackDiv.style.color = "red";
+        });
       });
     }
   </script>
