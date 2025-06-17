@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel de Consulta de Veículos</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #043C64;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    main {
+      max-width: 900px;
+      margin: 30px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 14px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #043C64;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: center;
+    }
+    th {
+      background-color: #043C64;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    .disponivel {
+      color: green;
+      font-weight: bold;
+    }
+    .ocupado {
+      color: red;
+      font-weight: bold;
+    }
+    footer {
+      text-align: center;
+      font-size: 14px;
+      color: #999;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Painel de Consulta de Veículos</h1>
+  </header>
+  <main>
+    <h2>Status Atual dos Veículos</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Veículo</th>
+          <th>Status</th>
+          <th>Último Motorista</th>
+          <th>Saldo de Combustível</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaVeiculos">
+        <tr><td colspan="4">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </main>
+  <footer>Desenvolvido por Tiago Nielson - v1.0</footer>
+
+  <script>
+    const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
+
+    function carregarDados() {
+      fetch(WEBAPP_URL + "?getDados=1")
+        .then(r => r.json())
+        .then(dados => {
+          const tabela = document.getElementById("tabelaVeiculos");
+          tabela.innerHTML = "";
+
+          dados.veiculos.forEach(v => {
+            const placa = v.placa;
+            const veiculoNome = v.nome;
+            const saldo = v.saldo;
+            const status = v.disponivel ? "Disponível" : "Ocupado";
+
+            // Buscar último motorista
+            const registrosReverso = [...dados.registros].reverse();
+            const ultimoRegistro = registrosReverso.find(r => r[2].includes(placa));
+            const motorista = ultimoRegistro ? ultimoRegistro[0] : "-";
+
+            const linha = `
+              <tr>
+                <td>${veiculoNome}</td>
+                <td class="${v.disponivel ? 'disponivel' : 'ocupado'}">${status}</td>
+                <td>${motorista}</td>
+                <td>${saldo}</td>
+              </tr>
+            `;
+            tabela.innerHTML += linha;
+          });
+        })
+        .catch(err => {
+          const tabela = document.getElementById("tabelaVeiculos");
+          tabela.innerHTML = `<tr><td colspan="4">Erro ao carregar dados</td></tr>`;
+          console.error(err);
+        });
+    }
+
+    carregarDados();
+    setInterval(carregarDados, 60000); // Atualiza a cada 60 segundos (opcional)
+  </script>
+</body>
+</html>
