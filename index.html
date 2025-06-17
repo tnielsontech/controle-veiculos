@@ -16,28 +16,28 @@
       color: white;
       text-align: center;
       padding: 25px 10px;
+      position: relative;
     }
     header img {
       max-height: 80px;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
     }
     header h1 {
       margin: 5px;
       font-size: 26px;
     }
-    .consulta-btn {
+    .botao-consulta {
+      position: absolute;
+      right: 20px;
+      top: 20px;
       background-color: white;
       color: #043C64;
-      padding: 8px 14px;
+      padding: 8px 16px;
       border-radius: 8px;
-      text-decoration: none;
-      border: 2px solid #043C64;
+      border: none;
+      cursor: pointer;
       font-weight: bold;
-      display: inline-block;
-      margin-top: 8px;
-    }
-    .consulta-btn:hover {
-      background-color: #e6f0f7;
+      font-size: 16px;
     }
     main {
       max-width: 700px;
@@ -91,13 +91,42 @@
       color: #999;
       padding: 10px;
     }
+
+    /* Box de confirmação estilizado */
+    .confirm-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .confirm-box {
+      background: white;
+      padding: 30px;
+      border-radius: 14px;
+      text-align: center;
+      max-width: 400px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    .confirm-box p {
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+    .confirm-box button {
+      width: auto;
+      margin: 0 10px;
+      padding: 10px 20px;
+    }
   </style>
 </head>
 <body>
   <header>
     <img src="https://raw.githubusercontent.com/seduin/controle-veiculos/main/Logotipo_Prefeitura_horizontal_negativo.png" alt="Prefeitura de Joinville">
     <h1>Controle de Veículos</h1>
-    <a href="consulta.html" target="_blank" class="consulta-btn">🔍 Ver Consulta de Veículos</a>
+    <button class="botao-consulta" onclick="window.location.href='consulta.html'">Consulta</button>
   </header>
 
   <main>
@@ -136,7 +165,8 @@
     <button onclick="enviar()">Confirmar</button>
     <div id="feedback"></div>
   </main>
-  <footer>Desenvolvido por Tiago Nielson - v3.5</footer>
+
+  <footer>Desenvolvido por Tiago Nielson - v4.0</footer>
 
   <script>
     const servidorSelect = document.getElementById("servidor");
@@ -146,13 +176,14 @@
     const obsDiv = document.getElementById("campoObservacao");
     const kmDiv = document.getElementById("campoKM");
     const feedbackDiv = document.getElementById("feedback");
-
     const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
 
     let servidores = [];
     let veiculos = [];
     let registros = [];
     let servidorComCarro = {};
+
+    let timeoutLimpeza;
 
     fetch(WEBAPP_URL + "?getDados=1")
       .then(r => r.json())
@@ -173,6 +204,12 @@
         servidorSelect.appendChild(opt);
       });
     }
+
+    servidorSelect.addEventListener("change", resetInatividade);
+    acaoSelect.addEventListener("change", resetInatividade);
+    veiculoSelect.addEventListener("change", resetInatividade);
+    document.getElementById("observacao").addEventListener("input", resetInatividade);
+    document.getElementById("km").addEventListener("input", resetInatividade);
 
     servidorSelect.addEventListener("change", () => {
       const servidor = servidorSelect.value;
@@ -257,52 +294,77 @@
         }
       }
 
-      if (!confirm(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`)) {
-        return;
-      }
+      exibirConfirmacao(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`, () => {
+        const data = new URLSearchParams();
+        data.append("servidor", servidor);
+        data.append("acao", acao);
+        data.append("veiculo", veiculo);
+        data.append("observacao", observacao);
+        data.append("km", km);
 
-      const data = new URLSearchParams();
-      data.append("servidor", servidor);
-      data.append("acao", acao);
-      data.append("veiculo", veiculo);
-      data.append("observacao", observacao);
-      data.append("km", km);
-
-      fetch(WEBAPP_URL, {
-        method: "POST",
-        body: data
-      })
-      .then(r => r.text())
-      .then(res => {
-        if (res.includes("OK")) {
-          feedbackDiv.textContent = "✅ Registro enviado com sucesso!";
-          feedbackDiv.style.color = "green";
-          servidorSelect.value = "";
-          acaoSelect.value = "";
-          veiculoSelect.innerHTML = "";
-          document.getElementById("observacao").value = "";
-          document.getElementById("km").value = "";
-          saldoDiv.textContent = "";
-          fetch(WEBAPP_URL + "?getDados=1")
-            .then(r => r.json())
-            .then(d => {
-              servidores = d.servidores;
-              veiculos = d.veiculos;
-              registros = d.registros || [];
-              servidorComCarro = d.servidorComCarro || {};
-              preencherServidores();
-            });
-          setTimeout(() => {
-            feedbackDiv.textContent = "";
-          }, 5000);
-        } else {
-          feedbackDiv.textContent = "Erro ao enviar.";
+        fetch(WEBAPP_URL, {
+          method: "POST",
+          body: data
+        })
+        .then(r => r.text())
+        .then(res => {
+          if (res.includes("OK")) {
+            feedbackDiv.textContent = "✅ Registro enviado com sucesso!";
+            feedbackDiv.style.color = "green";
+            setTimeout(() => feedbackDiv.textContent = "", 5000);
+            limparFormulario();
+          } else {
+            feedbackDiv.textContent = "Erro ao enviar.";
+            feedbackDiv.style.color = "red";
+          }
+        }).catch(() => {
+          feedbackDiv.textContent = "Erro de conexão.";
           feedbackDiv.style.color = "red";
-        }
-      }).catch(() => {
-        feedbackDiv.textContent = "Erro de conexão.";
-        feedbackDiv.style.color = "red";
+        });
       });
+    }
+
+    function exibirConfirmacao(msg, callback) {
+      const overlay = document.createElement('div');
+      overlay.className = 'confirm-overlay';
+
+      const box = document.createElement('div');
+      box.className = 'confirm-box';
+
+      box.innerHTML = `
+        <p>${msg}</p>
+        <button id="confirmSim">Confirmar</button>
+        <button id="confirmNao">Cancelar</button>
+      `;
+
+      overlay.appendChild(box);
+      document.body.appendChild(overlay);
+
+      document.getElementById('confirmSim').onclick = () => {
+        document.body.removeChild(overlay);
+        callback();
+      };
+      document.getElementById('confirmNao').onclick = () => {
+        document.body.removeChild(overlay);
+      };
+    }
+
+    function limparFormulario() {
+      servidorSelect.value = "";
+      acaoSelect.value = "";
+      veiculoSelect.innerHTML = "";
+      document.getElementById("observacao").value = "";
+      document.getElementById("km").value = "";
+      saldoDiv.textContent = "";
+      clearTimeout(timeoutLimpeza);
+    }
+
+    function resetInatividade() {
+      clearTimeout(timeoutLimpeza);
+      timeoutLimpeza = setTimeout(() => {
+        limparFormulario();
+        feedbackDiv.textContent = "";
+      }, 10000);
     }
   </script>
 </body>
