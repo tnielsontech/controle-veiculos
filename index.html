@@ -4,74 +4,76 @@
   <meta charset="UTF-8">
   <title>Controle de Veículos</title>
   <style>
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: #f4f6f9;
-    margin: 0;
-    padding: 0;
-    font-size: 23px;
-  }
-  header {
-    background-color: #043C64;
-    color: white;
-    text-align: center;
-    padding: 30px 15px;
-  }
-  header img {
-    max-height: 87px;
-    margin-bottom: 15px;
-  }
-  main {
-    max-width: 725px;
-    margin: 40px auto;
-    background: white;
-    padding: 30px;
-    border-radius: 14px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.1);
-  }
-  h2 {
-    text-align: center;
-    color: #043C64;
-    font-size: 28px;
-  }
-  label {
-    font-weight: bold;
-    margin-top: 15px;
-    display: block;
-    font-size: 23px;
-  }
-  select, input, textarea {
-    width: 100%;
-    padding: 14px;
-    font-size: 23px;
-    margin-bottom: 20px;
-    border: 1px solid #ccc;
-    border-radius: 9px;
-    box-sizing: border-box;
-  }
-  button {
-    width: 100%;
-    padding: 17px;
-    font-size: 24px;
-    background-color: #043C64;
-    color: white;
-    border: none;
-    border-radius: 9px;
-    cursor: pointer;
-  }
-  #feedback {
-    text-align: center;
-    font-weight: bold;
-    margin-top: 15px;
-    font-size: 22px;
-  }
-  footer {
-    text-align: center;
-    font-size: 16px;
-    color: #999;
-    padding: 15px;
-  }
-</style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 0;
+      font-size: 20px;
+    }
+    header {
+      background-color: #043C64;
+      color: white;
+      text-align: center;
+      padding: 25px 10px;
+    }
+    header img {
+      max-height: 80px;
+      margin-bottom: 10px;
+    }
+    main {
+      max-width: 700px;
+      margin: 30px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 14px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #043C64;
+      font-size: 26px;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 10px;
+      display: block;
+    }
+    select, input, textarea {
+      width: 100%;
+      padding: 12px;
+      font-size: 20px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 9px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 15px;
+      font-size: 22px;
+      background-color: #043C64;
+      color: white;
+      border: none;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #065a95;
+    }
+    #feedback {
+      text-align: center;
+      font-weight: bold;
+      margin-top: 15px;
+      font-size: 20px;
+    }
+    footer {
+      text-align: center;
+      font-size: 15px;
+      color: #999;
+      padding: 10px;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -80,6 +82,7 @@
   </header>
   <main>
     <h2>Formulário de Registro</h2>
+
     <label for="servidor">Servidor</label>
     <select id="servidor">
       <option value="">Carregando...</option>
@@ -97,6 +100,7 @@
     <select id="veiculo">
       <option value="">Selecione a ação primeiro...</option>
     </select>
+
     <div id="saldo" style="text-align:right; font-size:14px; margin-bottom:10px;"></div>
 
     <div id="campoObservacao">
@@ -112,7 +116,7 @@
     <button onclick="enviar()">Confirmar</button>
     <div id="feedback"></div>
   </main>
-  <footer>Desenvolvido por Tiago Nielson - v.1.x5</footer>
+  <footer>Desenvolvido por Tiago Nielson - v.4.0</footer>
 
   <script>
     const servidorSelect = document.getElementById("servidor");
@@ -122,8 +126,9 @@
     const obsDiv = document.getElementById("campoObservacao");
     const kmDiv = document.getElementById("campoKM");
     const feedbackDiv = document.getElementById("feedback");
-    const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
 
+    // 🔥 TROCA AQUI PELO TEU LINK DO PROXY VERCEL
+    const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
 
     let servidores = [];
     let veiculos = [];
@@ -222,15 +227,19 @@
           const diff = kmAtual - ultKM;
           if (isFinite(ultKM) && isFinite(kmAtual)) {
             if (diff < 0) {
-              alert("Você só andou de ré? A KM está abaixo da última registrada. Certifique-se da KM atual do veículo!");
+              alert("Você só andou de ré? A KM está abaixo da última registrada. Confira!");
               return;
             }
             if (diff > 500) {
-              alert("Por toda Joinville? Você andou mais de 500km só nessa 'saidinha'? Certifique-se da KM atual do veículo!");
+              alert("Por toda Joinville? Mais de 500km? Confira a KM!");
               return;
             }
           }
         }
+      }
+
+      if (!confirm(`Confirma ${acao} do veículo ${veiculo} por ${servidor}?`)) {
+        return;
       }
 
       const data = new URLSearchParams();
@@ -240,18 +249,12 @@
       data.append("observacao", observacao);
       data.append("km", km);
 
-      console.log("Enviando dados:", {
-      servidor,
-      acao,
-      veiculo,
-      observacao,
-      km
-      });
-      
       fetch(WEBAPP_URL, {
         method: "POST",
         body: data
-      }).then(r => r.text()).then(res => {
+      })
+      .then(r => r.text())
+      .then(res => {
         if (res.includes("OK")) {
           feedbackDiv.textContent = "✅ Registro enviado com sucesso!";
           feedbackDiv.style.color = "green";
