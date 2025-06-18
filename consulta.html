@@ -77,7 +77,7 @@
   <main>
     <div class="cards" id="cards"></div>
   </main>
-  <footer>Desenvolvido por Tiago Nielson - v.4.1</footer>
+  <footer>Desenvolvido por Tiago Nielson - v.4.2</footer>
 
   <script>
     const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
@@ -107,9 +107,16 @@
         card.className = 'card';
         if (!veiculo.disponivel) card.classList.add('ocupado');
 
+        const isDiretoria = veiculo.placa === "SXH4B83";
+
         const ultimoMotorista = buscarUltimoMotorista(veiculo.nome);
 
         card.innerHTML = `
+          ${isDiretoria ? `
+            <div style="background:#c00; color:#fff; padding:3px 8px; border-radius:5px; display:inline-block; font-size:12px; margin-bottom:6px;">
+              🚩 Diretoria
+            </div>
+          ` : ""}
           <h3>${veiculo.nome}</h3>
           <p><strong>Saldo:</strong> ${veiculo.saldo}</p>
           <p><strong>Status:</strong> ${veiculo.disponivel ? '✅ Disponível' : '🚗 Ocupado'}</p>
@@ -118,6 +125,11 @@
             <strong>Último abastecimento:</strong><br>
             ${veiculo.dataAbastecimento} (${veiculo.valorAbastecimento})
           </p>
+          ${isDiretoria ? `
+            <p style="font-size: 13px; color: #c00; margin-top: 8px;">
+              ⚠️ Veículo da Diretoria – Uso somente com autorização.
+            </p>
+          ` : ""}
         `;
 
         container.appendChild(card);
