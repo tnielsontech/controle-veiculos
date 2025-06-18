@@ -77,7 +77,7 @@
   <main>
     <div class="cards" id="cards"></div>
   </main>
-  <footer>Desenvolvido por Tiago Nielson - v.4.0</footer>
+  <footer>Desenvolvido por Tiago Nielson - v.4.1</footer>
 
   <script>
     const WEBAPP_URL = "https://proxy-controle-veiculos.vercel.app/api";
@@ -114,6 +114,10 @@
           <p><strong>Saldo:</strong> ${veiculo.saldo}</p>
           <p><strong>Status:</strong> ${veiculo.disponivel ? '✅ Disponível' : '🚗 Ocupado'}</p>
           <p><strong>${veiculo.disponivel ? 'Último Motorista' : 'Em posse de'}:</strong><br> ${ultimoMotorista}</p>
+          <p style="font-size: 14px; margin-top:10px; color: #666;">
+            <strong>Último abastecimento:</strong><br>
+            ${veiculo.dataAbastecimento} (${veiculo.valorAbastecimento})
+          </p>
         `;
 
         container.appendChild(card);
